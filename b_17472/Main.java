@@ -1,32 +1,31 @@
 package b_17472;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Scanner;
 
 public class Main {
 	
-	static int[][] map = new int[10][10];
-	static int[][] groupMap = new int[10][10];
-	static boolean[][] visited = new boolean[10][10];
+	static int map[][] = new int[10][10];
+	static boolean visited[][] = new boolean[10][10];
 	
-	static int[] dx = {0, 1, 0, -1};
-	static int[] dy = {-1, 0, 1, 0};
-
-	static Queue<Point> queue = new LinkedList<>();
-	static Queue<Point> tempQueue = new LinkedList<>();
-	static Map<Integer, Queue<Point>> beachMap = new HashMap<>();
+	static int dx[] = {0, 1, 0, -1};
+	static int dy[] = {-1, 0, 1, 0};
 	
 	static int N, M;
 	
-	static int[][] bridgeMap = new int[7][7];
+	static int[][] distanceMap = new int[7][7];
 	
-	static List<int[]> permuList = new ArrayList<>();
+	static Queue<Point> queue = new LinkedList<>();
+	static Queue<Point> tempQueue = new LinkedList<>();
+	
+	static Map<Integer, Queue<Point>> beachMap = new HashMap<>();
+	
+	static PriorityQueue<Node> pq = new PriorityQueue<>();
+	static boolean[] visitedsum = new boolean[7];
 	
 	public static void main(String args[]) {
 		Scanner scan = new Scanner(System.in);
@@ -40,75 +39,51 @@ public class Main {
 			}
 		}
 		
-		//group
 		int count = 0;
+		//group
 		for(int i=0; i<N; i++) {
 			for(int j=0; j<M; j++) {
 				if(map[i][j] != 0 && visited[i][j] == false) {
 					count++;
 					visited[i][j] = true;
-					groupMap[i][j] = count;
-					queue.add(new Point(j, i));
+					map[i][j] = count;
+					queue.offer(new Point(j, i));
 					bfs(count);
 				}
 			}
 		}
 		
-		printMap();
-		
 		for(int i=1; i<7; i++) {
 			for(int j=1; j<7; j++) {
-				bridgeMap[i][j] = -1;
+				distanceMap[i][j] = 1000;
 			}
 		}
-		
-		Iterator<Integer> iter = beachMap.keySet().iterator();
-		int idx;
-		
-		while(iter.hasNext()) {
-			idx = iter.next();
-			clearVisited();
-			tempQueue.clear();
-			queue = beachMap.get(idx);
-			
-			constructBridge(idx);
-		}
-		
-		System.out.println("===========================");
 		
 		for(int i=1; i<=count; i++) {
-			for(int j=1; j<=count; j++) {
-				System.out.print(bridgeMap[i][j] + " ");
-			}
-			System.out.println("");
+			distance(i);
 		}
 		
-//		int arr[] = new int[count];
-//		for(int i=0; i<count; i++) {
-//			arr[i] = i+1;
-//		}
-//		
-//		permutation(arr, 0, count, count);
-//		
-//		int min = (1<<31) - 1;
-//		int sum = 0;
-//		
-//		for(int[] permu : permuList) {
-//			sum = 0;
-//			for(int i=0; i<permu.length; i++) {
-//				
+//		for(int i=1; i<=count; i++) {
+//			for(int j=1; j<=count; j++) {
+//				if(distanceMap[i][j] == 1000) {
+//					System.out.print("0 ");
+//				}else {
+//					System.out.print(distanceMap[i][j] + " ");
+//				}
 //			}
+//			System.out.println("");
 //		}
 		
+		System.out.println(getShortestDistance(count));
+
 		scan.close();
 	}
 	
 	static void bfs(int count) {
-		Point p;
-		
-		int temp_x, temp_y;
-		
 		Queue<Point> beachQueue = new LinkedList<>();
+		
+		Point p;
+		int temp_x, temp_y;
 		
 		while(!queue.isEmpty()) {
 			p = queue.poll();
@@ -116,13 +91,17 @@ public class Main {
 			for(int i=0; i<4; i++) {
 				temp_x = p.x + dx[i];
 				temp_y = p.y + dy[i];
-				
-				if(checkRange(temp_x, temp_y) && visited[temp_y][temp_x] == false) {
+			
+				if(checkRange(temp_x, temp_y)) {
 					if(map[temp_y][temp_x] != 0) {
-						groupMap[temp_y][temp_x] = count;
-						visited[temp_y][temp_x] = true;
-						tempQueue.add(new Point(temp_x, temp_y));
+						if(visited[temp_y][temp_x] == false) {
+							visited[temp_y][temp_x] = true;
+							map[temp_y][temp_x] = count;
+							tempQueue.add(new Point(temp_x, temp_y));
+						}
+						
 					}else {
+//						System.out.println("(" + p.x + ", " + p.y + ", " + i + ")");
 						beachQueue.add(new Point(p.x, p.y, i));
 					}
 				}
@@ -134,61 +113,115 @@ public class Main {
 			}
 		}
 		
+//		System.out.println("=====================");
 		beachMap.put(count, beachQueue);
-		
 	}
 	
-	static void constructBridge (int idx) {
+	static void distance (int idx) {
 		
-		int x, y;
 		Point p;
-		
+		Queue<Point> bQueue = beachMap.get(idx);
 		int count = 0;
-	
+		
+		int temp_x, temp_y;
+		
 		next:
-		while(!queue.isEmpty()) {
-			p = queue.poll();
-
-			x = p.x + dx[p.d];
-			y = p.y + dy[p.d];
+		while(!bQueue.isEmpty()) {
+			
+//			p = bQueue.poll();
+//			count = 0;
+			
+			
+			p = bQueue.poll();
+	
+			temp_x = p.x + dx[p.d];
+			temp_y = p.y + dy[p.d];
 			count = 0;
 			
 			//방향으로 계속 더한다.
-			while(checkRange(x, y)) {
-				if(groupMap[y][x] != 0) {
-					bridgeMap[idx][groupMap[y][x]] = count;
+			while(checkRange(temp_x, temp_y)) {
+				if(map[temp_y][temp_x] != 0) {
+					if(count >= 2) {
+						distanceMap[idx][map[temp_y][temp_x]] = Math.min(distanceMap[idx][map[temp_y][temp_x]], count);
+					}
 					continue next;
 				}else {
 					count++;
 				}
-				x += dx[p.d];
-				y += dy[p.d];
+				temp_x += dx[p.d];
+				temp_y += dy[p.d];
+			}
+		}
+			
+//			temp_x = p.x;
+//			temp_y = p.y;
+//			
+//			while(checkRange(temp_x+dx[p.d], temp_y+dy[p.d])) {
+//				if(map[temp_y][temp_x] > 0 && map[temp_y][temp_x] != idx && count >= 2) {
+//					System.out.print("(" + p.x + ", " + p.y + ", " + p.d + ") ::");
+//					System.out.println(idx + " : dist : " + distanceMap[idx][map[temp_y][temp_x]]);
+//					distanceMap[idx][map[temp_y][temp_x]] =  Math.min(distanceMap[idx][map[temp_y][temp_x]], count);
+//					break;
+//				}
+//				count++;
+//				temp_x += dx[p.d];
+//				temp_y += dy[p.d];
+//			}
+//			
+//		}
+	}
+	
+	static int getShortestDistance (int count) {
+		
+		boolean visitAll = true;
+		Node node;
+		
+		int dist = 0;
+		visitedsum[1] = true;
+		for(int i=1; i<=count; i++) {
+			if(distanceMap[1][i] < 1000) {
+				pq.offer(new Node(1, i, distanceMap[1][i]));
 			}
 		}
 		
-	}
-	
-	static void dfs () {
-		
-	}
-	
-	static void permutation (int[] arr, int arrSize, int n, int r) {
-		if(arrSize == r) {
-			permuList.add(arr.clone());
-			return;
+		while(!pq.isEmpty()) {
+			visitAll = true;
+			node = pq.poll();
+			
+			if(visitedsum[node.end] == true) {
+				continue;
+			}
+			
+			for(int i=1; i<=count; i++) {
+				visitAll &= visitedsum[i];
+			}
+			
+			if(visitAll) {
+				break;
+			}
+			
+//			System.out.println("(" + node.start + ", " + node.end + ", " + node.cost + ")");
+			
+			visitedsum[node.end] = true;
+			dist += node.cost;
+			
+			for(int i=1; i<=count; i++) {
+				if(distanceMap[node.end][i] < 1000 && visitedsum[i] == false) {
+					pq.offer(new Node(node.end, i, distanceMap[node.end][i]));
+				}
+			}
 		}
 		
-		for(int i=arrSize; i<n; i++) {
-			swap(arr, arrSize, i);
-			permutation(arr, arrSize+1, n, r);
-			swap(arr, arrSize, i);
+		visitAll = true;
+		for(int i=1; i<=count; i++) {
+			visitAll &= visitedsum[i];
 		}
-	}
-	
-	static void swap(int[] arr, int a, int b) {
-		int temp = arr[a];
-		arr[a] = arr[b];
-		arr[b] = temp;
+		
+		if(visitAll) {
+			return dist;
+		}else {
+			return -1;
+		}
 	}
 	
 	static boolean checkRange (int x, int y) {
@@ -198,18 +231,10 @@ public class Main {
 		return false;
 	}
 	
-	static void clearVisited () {
-		for(int i=0; i<N; i++) {
-			for(int j=0; j<M; j++) {
-				visited[i][j] = false;
-			}
-		}
-	}
-	
 	static void printMap () {
 		for(int i=0; i<N; i++) {
 			for(int j=0; j<M; j++) {
-				System.out.print(groupMap[i][j] + " ");
+				System.out.print(map[i][j] + " ");
 			}
 			System.out.println("");
 		}
@@ -229,5 +254,20 @@ class Point {
 		this.x = x;
 		this.y = y;
 		this.d = d;
+	}
+}
+
+class Node implements Comparable<Node>{
+	int start, end, cost;
+	
+	public Node (int start, int end, int cost) {
+		this.start = start;
+		this.end = end;
+		this.cost = cost;
+	}
+
+	@Override
+	public int compareTo(Node o) {
+		return this.cost > o.cost ? 1 : -1;
 	}
 }
